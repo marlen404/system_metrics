@@ -7,7 +7,7 @@ metric_data = {
     "cpu_usage": 42.7,
     "ram_usage": 61.4,
     "network_traffic": 214.3,
-    "timestamp": "20250224T143600Z",
+    "timestamp": "2025",
     "service_name": "web-server"
 }
 

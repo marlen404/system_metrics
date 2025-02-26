@@ -1,8 +1,5 @@
 from sqlalchemy import Column, Integer, Float, String, DateTime
-from sqlalchemy.sql import func
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from app.config.database import Base
 
 class SystemMetrics(Base):
     __tablename__ = "system_metrics"

@@ -1,10 +1,14 @@
 import pika
 import json
+from app.config.settings import RABBITMQ_URL
 
-def send_to_rabbitmq(data):
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
-    channel = connection.channel()
-    channel.queue_declare(queue="metrics_queue")
-    channel.basic_publish(exchange='', routing_key="metrics_queue", body=json.dumps(data))
-    connection.close()                                                               
-                                                                   
+params = pika.URLParameters(RABBITMQ_URL)
+connection = pika.BlockingConnection(params)
+channel = connection.channel()
+channel.queue_declare(queue="metrics_queue")
+
+def enqueue_metric(metric_data):
+    channel.basic_publish(exchange="", routing_key="metrics_queue", body=json.dumps(metric_data))
+
+def dequeue_metric(ch, method, properties, body):
+    return json.loads(body)

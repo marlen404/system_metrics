@@ -1,32 +1,35 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from fastapi import HTTPException
-from app.models.metrics_model import SystemMetrics
-from app.queues.redis_queue import add_to_redis_queue
-from app.queues.rabbitmq_queue import send_to_rabbitmq
+from sqlalchemy.orm import Session
+from app.models.metrics_model import Metric
 
-async def queue_metric(metrics: dict):
-    add_to_redis_queue(metrics)
-    send_to_rabbitmq(metrics)
-    return {"message": "Metric queued for processing"}
-
-async def get_metrics_list(db: AsyncSession):
-    result = await db.execute(select(SystemMetrics.id, SystemMetrics.service_name))
-    return result.fetchall()
-
-async def get_metric_by_id(id: int, db: AsyncSession):
-    result = await db.execute(select(SystemMetrics).where(SystemMetrics.id == id))
-    metric = result.scalar()
-    if not metric:
-        raise HTTPException(status_code=404, detail="Metric not found")
+def create_metric(db: Session, metric_data: dict):
+    """
+    Inserts a new metric into the database.
+    """
+    metric = Metric(**metric_data)
+    db.add(metric)
+    db.commit()
+    db.refresh(metric)
     return metric
 
-async def delete_metric(id: int, db: AsyncSession):
-    result = await db.execute(select(SystemMetrics).where(SystemMetrics.id == id))
-    metric = result.scalar()
-    if not metric:
-        raise HTTPException(status_code=404, detail="Metric not found")
+def get_all_metrics(db: Session):
+    """
+    Fetches all stored metrics.
+    """
+    return db.query(Metric).all()
 
-    await db.delete(metric)
-    await db.commit()
-    return {"message": "Metric deleted"}
+def get_metric_by_id(db: Session, metric_id: int):
+    """
+    Retrieves a specific metric by ID.
+    """
+    return db.query(Metric).filter(Metric.id == metric_id).first()
+
+def delete_metric_by_id(db: Session, metric_id: int):
+    """
+    Deletes a specific metric by ID.
+    """
+    metric = db.query(Metric).filter(Metric.id == metric_id).first()
+    if metric:
+        db.delete(metric)
+        db.commit()
+        return True
+    return False

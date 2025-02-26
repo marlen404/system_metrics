@@ -1,16 +1,11 @@
-import redis
-import json
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.config.database import get_db
-from app.models.metrics_model import SystemMetrics
+from app.queues.redis_queue import dequeue_metric
+from app.config.database import SessionLocal
+from app.models.metrics_model import Metric
 
-redis_client = redis.Redis(host='redis', port=6379, decode_responses=True)
-
-async def process_redis_queue(db: AsyncSession):
+def process_metrics():
+    db = SessionLocal()
     while True:
-        _, data = redis_client.blpop("metrics_queue")
-        metric_data = json.loads(data)
-
-        new_metric = SystemMetrics(**metric_data)
-        db.add(new_metric)
-        await db.commit()
+        metric_data = dequeue_metric()
+        metric = Metric(**metric_data)
+        db.add(metric)
+        db.commit()

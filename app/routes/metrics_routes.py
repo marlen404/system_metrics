@@ -1,25 +1,45 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from app.config.database import get_db
 from app.services.metrics_service import (
-    queue_metric, get_metrics_list, get_metric_by_id, delete_metric
+    create_metric, get_all_metrics, get_metric_by_id, delete_metric_by_id
 )
-from app.models.metrics_model import SystemMetrics
+from app.queues.redis_queue import enqueue_metric
 
-router = APIRouter()
+router = APIRouter(prefix="/metrics", tags=["Metrics"])
 
 @router.post("/")
-async def post_metrics(metrics: SystemMetrics, db: AsyncSession = Depends(get_db)):
-    return await queue_metric(metrics.dict())
+def create_metric_endpoint(metric: dict, db: Session = Depends(get_db)):
+    """
+    Queues a new metric and returns a success message.
+    """
+    enqueue_metric(metric)
+    return {"message": "Metric queued successfully"}
 
 @router.get("/")
-async def get_metrics_list(db: AsyncSession = Depends(get_db)):
-    return await get_metrics_list(db)
+def get_metrics_endpoint(db: Session = Depends(get_db)):
+    """
+    Returns a list of stored metrics.
+    """
+    metrics = get_all_metrics(db)
+    return [{"id": m.id, "service_name": m.service_name} for m in metrics]
 
 @router.get("/{id}")
-async def get_metric(id: int, db: AsyncSession = Depends(get_db)):
-    return await get_metric_by_id(id, db)
+def get_metric_endpoint(id: int, db: Session = Depends(get_db)):
+    """
+    Returns details of a specific metric.
+    """
+    metric = get_metric_by_id(db, id)
+    if not metric:
+        raise HTTPException(status_code=404, detail="Metric not found")
+    return metric
 
 @router.delete("/{id}")
-async def delete_metric(id: int, db: AsyncSession = Depends(get_db)):
-    return await delete_metric(id, db)
+def delete_metric_endpoint(id: int, db: Session = Depends(get_db)):
+    """
+    Deletes a metric by ID.
+    """
+    success = delete_metric_by_id(db, id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Metric not found")
+    return {"message": "Metric deleted successfully"}

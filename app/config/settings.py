@@ -1,3 +1,4 @@
+""" Settings """
 import os
 from dotenv import load_dotenv
 
@@ -9,3 +10,9 @@ RABITMQ_URL = os.getenv("RABITMQ_URL")
 
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL not set")
+
+if not REDIS_URL:
+    raise ValueError("REDIS_URL not set")
+
+if not RABITMQ_URL:
+    raise ValueError("RABITMQ_URL not set")

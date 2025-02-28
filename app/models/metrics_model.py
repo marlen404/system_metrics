@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, String, DateTime
+from sqlalchemy import Column, Integer, Float, String
 from app.config.database import Base
 
 class SystemMetrics(Base):
